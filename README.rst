@@ -18,8 +18,17 @@ lockedObject
      :alt: Updates
 
 
-Encrypted python objects, asks for password to unlock.
+Encrypted python objects, asks for password to unlock, or
+supply your own key function.
+Created for encrypting enviroment variables in xonsh.
 
+Uses _cryptography with fernet.
+
+.. _cryptography: https://pypi.python.org/pypi/cryptography
+
+.. code-block:: python
+   import lockedobject
+   lockedobject.initPasswordProtectKey()
 
 * Free software: GNU General Public License v3
 * Documentation: https://lockedobject.readthedocs.io.
