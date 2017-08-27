@@ -22,7 +22,7 @@ Encrypted python objects, asks for password to unlock, or
 supply your own key function.
 Created for encrypting enviroment variables in xonsh.
 
-Uses _cryptography with fernet.
+Uses cryptography_ with fernet.
 
 .. _cryptography: https://pypi.python.org/pypi/cryptography
 
