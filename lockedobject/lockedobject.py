@@ -10,9 +10,11 @@ import base64
 import os
 import weakref
 from getpass import getpass
-import wrapt
 
 class Fernet(Fernet):
+    """
+    A modified fernet that pickles.
+    """
     def __reduce__(self):
         key = self._signing_key+self._encryption_key
         return(Fernet,(key,))
@@ -45,7 +47,8 @@ def initPasswordProtectedKey(helpText=True):
     dataStr = passwordKey.encrypt(pickle.dumps(key))
     dataStr = base64.urlsafe_b64encode(dataStr)
     if helpText:
-        print("You can lock a new object with lockedobjects.lockObject(obj)")
+        print("You can lock a new object with lockedobjects.lockObject(obj),")
+        print("which will return a string suitable for use in a lockedobjects.LockedObject(str, keyFunc)")
         print("Add the following to ~/.xonshrc")
         print("from lockedobject import LockedObject, passwordPrompt")
         print("$ENV_KEY=LockedObject({} , passwordPrompt)".format(dataStr))
@@ -59,28 +62,42 @@ def lockObject(obj,key=None):
 
 passwordPrompt = lambda: keyFromPassword(getpass("Enter password to unlock locked variables: "))
 
-class LockedObject(wrapt.ObjectProxy):
+class LockedObject():
+    """
+    This is a proxy object, wrapping *something*.
+    What it's wrapping, we don't know.
+    Call the obj.__self__decrypt() method and find out.
+    """
     def __init__(self, dataStr, keyFunc, cached=False):
-        self.encData=base64.urlsafe_b64decode(dataStr)
-        self.keyFunc=keyFunc
-        self.cached=cached
-        self.cachedData=lambda: None
+        self.__self__encData=base64.urlsafe_b64decode(dataStr)
+        self.__self__keyFunc=keyFunc
+        self.__self__cached=cached
+        self.__self__cachedData=lambda: None
 
-    def decrypt(self):
-        if self.cachedData() != None:
-            return self.cachedData()
-        key = self.keyFunc()
-        data = pickle.loads(key.decrypt(self.encData))
-        if self.cached:
-            self.cachedData=lambda: data
+    def __getattr__(self,attr):
+        return getattr(self.__self__decrypt(),attr)
+    def __str__(self):
+        return str(self.__self__decrypt())
+
+    def __self__decrypt(self):
+        #Use raw fernet object as keyfunc, without wrapping it
+        #it a function that returns a key.
+        if hasattr(self.__self__keyFunc,"decrypt"):
+            key=self.__self__keyFunc
         else:
-            self.cachedData=weakref.ref(data)
+            key=self.__self__keyFunc()
+
+        if self.__self__cachedData() != None:
+            return self.__self__cachedData()
+        key = self.__self__keyFunc()
+        data = pickle.loads(key.decrypt(self.__self__encData))
+        if self.__self__cached:
+            self.__self__cachedData=lambda: data
+        else:
+            self.__self__cachedData=weakref.ref(data)
         return data
 
-    def purge(self):
-        obj = self.cachedData()
+    def __self__purge(self):
+        obj = self.__self__cachedData()
         del obj
-        self.cachedData=lambda: None
-
-    def __str__(self):
-        return str(self.decrypt())
+        self.__self__cachedData=lambda: None
